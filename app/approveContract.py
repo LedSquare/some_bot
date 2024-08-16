@@ -4,31 +4,63 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import os, time
+from pprint import pprint
+import os, time, asyncio, re
 
-def approveContract(driver: webdriver, contractId: str) -> bool: 
 
-    if driver.current_url == 'https://1sed.infogeneral.ru/auth/login':
-        login(driver)
-
-    search_input = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.ID, 'quick-search'))
-    )
+async def approveContract(driver: webdriver, contractId: str) -> bool: 
     
+    if driver.current_url == 'https://1sed.infogeneral.ru/auth/login':
+        await login(driver)
+        
+    search_input = driver.find_element(By.ID, 'quick-search')
     search_input.send_keys(contractId, Keys.ENTER)
+
+    await asyncio.sleep(1.5)
 
     try:
         status = driver.find_element(By.XPATH, value="//blockquote[@class='this group']")
+    except (NoSuchElementException):
+        try: 
+            status = driver.find_elements(By.XPATH, value="//blockquote[@class=' group']")
+            print(status)
+        except (NoSuchElementException):
+            return False
 
-    except (NoSuchElementException) as e:
+    regex = r"ИО Завершено\s*(.*)"
+
+    if re.search(regex, status.text):
+        driver.find_element(By.ID, 'addRouteField').click()
+
+        await asyncio.sleep(12)
+
+        driver.find_element(By.ID, 'routeButtonGroup').click()
+        driver.find_element(By.XPATH, value="//i[@class='icon-']").click()
+
+        await asyncio.sleep(0.5)
+
+        driver.find_element(By.ID, value="yt1").click()
+        
+        await asyncio.sleep(10)
+
+        return True
+
+    elif status.text == 'ИО На рассмотрении': 
+        driver.find_element(By.ID, 'routeButtonGroup').click()
+        driver.find_element(By.XPATH, value="//i[@class='icon-']").click()
+
+        await asyncio.sleep(0.5)
+
+        driver.find_element(By.ID, value="yt1").click()
+        
+        await asyncio.sleep(10)
+
+        return True
+    
+    else: 
         return False
 
-    if status.text != 'ИО На рассмотрении':
-        return False
-
-    return True
-
-def login(driver: webdriver) -> None:
+async def login(driver: webdriver):
     LOGIN = os.getenv('LOGIN')
     PASSWORD = os.getenv('PASSWORD')
 
@@ -36,4 +68,4 @@ def login(driver: webdriver) -> None:
     driver.find_element(By.ID, 'LoginForm_password').send_keys(PASSWORD)
     driver.find_element(By.NAME, 'yt0').click()
 
-    time.sleep(1)
+    await asyncio.sleep(1)

@@ -1,8 +1,12 @@
 from selenium import webdriver
 from dotenv import load_dotenv
 from approveContract import approveContract
-import telebot
-import logging, os
+import logging, os, asyncio, sys
+from aiogram import Bot, Dispatcher, html
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.filters import CommandStart
+from aiogram.types import Message
 
 load_dotenv()
 
@@ -11,31 +15,33 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
-
 driver = webdriver.Chrome()
-driver.set_window_size(1200,800)
+driver.set_window_size(1200, 800)
 driver.get('https://1sed.infogeneral.ru/auth/login')
 
-@bot.message_handler(commands=['start'])
-def send_start(message):
-    bot.send_message(message.chat.id, "Напишите список id договор в строку по одному!")
+dp = Dispatcher()
 
-@bot.message_handler(content_types=['text'])
-def get_contracts(message):
-    contracts = ''
+@dp.message(CommandStart())
+async def start_handler(message: Message) -> None:
+    await message.answer("Напишите список id договор в строку по одному!")
+
+@dp.message()
+async def contracts_hanlder(message: Message) -> None:
+    contracts = []
     for line in message.text.splitlines():
-        # if approveContract(driver, line):
-        contracts = contracts.join(line + " - Согласован\n")
-
-        print(contracts)
-        # else:
-            # contracts = contracts.join(line + " - Не найден либо не состоит группе\n")
-    # bot.send_message(message.chat.id, contracts)
-
-
-def main() -> None:
-    bot.infinity_polling()
+        if await approveContract(driver, line):
+            contracts.append(line + " - согласован \n")
+        else:
+            contracts.append(line + " - Не найден либо не состоит группе \n")
+    resultMessage = ''.join(map(str, contracts))
     
+    await message.answer(resultMessage)
+    
+
+async def main() -> None:
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)) 
+    await dp.start_polling(bot)
+
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
+    
