@@ -1,12 +1,13 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 from approveContract import approveContract
-import logging, os, asyncio, sys
 from aiogram import Bot, Dispatcher, html
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message
+import logging, os, asyncio, sys
 
 load_dotenv()
 
@@ -15,8 +16,14 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-driver = webdriver.Chrome()
-driver.set_window_size(1200, 800)
+options = Options()
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920x1080")
+
+if os.getenv('ENV') == 'prod':
+    options.add_argument('--headless')
+
+driver = webdriver.Chrome(options=options)
 driver.get('https://1sed.infogeneral.ru/auth/login')
 
 dp = Dispatcher()
