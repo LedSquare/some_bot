@@ -32,7 +32,7 @@ async def contracts_hanlder(message: Message) -> None:
         if await approveContract(driver, line):
             contracts.append(line + " - согласован \n")
         else:
-            contracts.append(line + " - Не найден либо не состоит группе \n")
+            contracts.append(line + " - Не найден либо не находится в группе \n")
     resultMessage = ''.join(map(str, contracts))
     
     await message.answer(resultMessage)
