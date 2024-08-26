@@ -18,7 +18,7 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 options = Options()
 options.add_argument("--disable-gpu")
-options.add_argument("--window-size=1920x1080")
+options.add_argument("--window-size=1400,900")
 
 if os.getenv('ENV') == 'prod':
     options.add_argument('--headless')
