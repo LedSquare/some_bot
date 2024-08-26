@@ -21,10 +21,9 @@ async def approveContract(driver: webdriver, contractId: str) -> bool:
     try:
         status = driver.find_element(By.XPATH, value="//blockquote[@class='this group']")
     except (NoSuchElementException):
-        groups = driver.find_elements(By.XPATH, value="//blockquote[@class=' group']")
-        status = groups[-1]
-        if not groups:
-            return False
+        return False
+        # groups = driver.find_elements(By.XPATH, value="//blockquote[@class=' group']")
+        # status = groups[-1]
 
     regex = r"ИО Завершено\s*(.*)"
 
