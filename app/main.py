@@ -7,7 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message
-import logging, os, asyncio, sys
+import logging, os, asyncio, re, sys
 
 load_dotenv()
 
@@ -35,7 +35,8 @@ async def start_handler(message: Message) -> None:
 @dp.message()
 async def contracts_hanlder(message: Message) -> None:
     contracts = []
-    for line in message.text.splitlines():
+    numbers = await prepare_message(message.text)
+    for line in numbers:
         if await approveContract(driver, line):
             contracts.append(line + " - согласован \n")
         else:
@@ -44,6 +45,11 @@ async def contracts_hanlder(message: Message) -> None:
     
     await message.answer(resultMessage)
     
+
+async def prepare_message(message: str) -> list[str]:
+    cleaned_message = re.sub(r'[^\d]', '', message)
+    numbers = [cleaned_message[i:i+6] for i in range(0, len(cleaned_message), 6)]
+    return numbers
 
 async def main() -> None:
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)) 
