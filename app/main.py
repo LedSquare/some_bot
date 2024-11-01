@@ -27,6 +27,7 @@ driver = webdriver.Chrome(options=options)
 driver.get('https://1sed.infogeneral.ru/auth/login')
 
 dp = Dispatcher()
+queue = asyncio.Queue()
 
 @dp.message(CommandStart())
 async def start_handler(message: Message) -> None:
@@ -34,17 +35,22 @@ async def start_handler(message: Message) -> None:
 
 @dp.message()
 async def contracts_hanlder(message: Message) -> None:
-    contracts = []
     numbers = await prepare_message(message.text)
     for line in numbers:
-        if await approveContract(driver, line):
-            contracts.append(line + " - согласован \n")
-        else:
-            contracts.append(line + " - Не найден либо не находится в группе \n")
-    resultMessage = ''.join(map(str, contracts))
+        await queue.put((message.chat.id, line))
     
-    await message.answer(resultMessage)
-    
+
+async def process_queue(): 
+    while True:
+        chat_id, line = await queue.get()
+        try:
+            if await approveContract(driver, line):
+                await bot.send_message(chat_id, f"{line} - согласован")
+            else:
+                await bot.send_message(chat_id, f"{line} - Не найден либо не находится в группе")
+        finally:
+            queue.task_done()
+                
 
 async def prepare_message(message: str) -> list[str]:
     cleaned_message = re.sub(r'[^\d]', '', message)
@@ -52,7 +58,11 @@ async def prepare_message(message: str) -> list[str]:
     return numbers
 
 async def main() -> None:
+    global bot
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)) 
+
+    asyncio.create_task(process_queue())
+
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
